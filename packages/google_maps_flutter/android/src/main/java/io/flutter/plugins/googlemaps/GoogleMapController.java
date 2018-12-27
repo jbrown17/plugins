@@ -23,6 +23,7 @@ import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.GoogleMapOptions;
+import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.CameraPosition;
@@ -236,6 +237,13 @@ final class GoogleMapController
           result.success(null);
           break;
         }
+      case "map#setStyle":
+      {
+        final String style = call.argument("style");
+        setMapStyle(style);
+        result.success(null);
+        break;
+      }
       default:
         result.notImplemented();
     }
@@ -370,6 +378,10 @@ final class GoogleMapController
   @Override
   public void setMapType(int mapType) {
     googleMap.setMapType(mapType);
+  }
+
+  public void setMapStyle(String style) {
+    googleMap.setMapStyle(new MapStyleOptions(style));
   }
 
   @Override

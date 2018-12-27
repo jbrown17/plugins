@@ -37,7 +37,7 @@ class GoogleMapController extends ChangeNotifier {
     assert(options != null);
     assert(options.cameraPosition != null);
     final MethodChannel channel =
-        MethodChannel('plugins.flutter.io/google_maps_$id');
+    MethodChannel('plugins.flutter.io/google_maps_$id');
     await channel.invokeMethod('map#waitForMap');
     return GoogleMapController._(id, options, channel);
   }
@@ -49,7 +49,7 @@ class GoogleMapController extends ChangeNotifier {
 
   /// Callbacks to receive tap events for info windows on markers
   final ArgumentCallbacks<Marker> onInfoWindowTapped =
-      ArgumentCallbacks<Marker>();
+  ArgumentCallbacks<Marker>();
 
   /// The configuration options most recently applied via controller
   /// initialization or [updateMapOptions].
@@ -156,7 +156,7 @@ class GoogleMapController extends ChangeNotifier {
   /// been notified.
   Future<Marker> addMarker(MarkerOptions options) async {
     final MarkerOptions effectiveOptions =
-        MarkerOptions.defaultOptions.copyWith(options);
+    MarkerOptions.defaultOptions.copyWith(options);
     final String markerId = await _channel.invokeMethod(
       'marker#add',
       <String, dynamic>{
@@ -212,7 +212,7 @@ class GoogleMapController extends ChangeNotifier {
     assert(_markers != null);
     final List<String> markerIds = List<String>.from(_markers.keys);
     for (String id in markerIds) {
-      await _removeMarker(id);
+    await _removeMarker(id);
     }
     notifyListeners();
   }
@@ -228,4 +228,12 @@ class GoogleMapController extends ChangeNotifier {
     });
     _markers.remove(id);
   }
+
+  /// Set the map style using a json string
+  Future<void> setMapStyle(String style) async {
+    await _channel.invokeMethod("map#setStyle", <String, dynamic> {
+      'style': style
+    });
+  }
+
 }
