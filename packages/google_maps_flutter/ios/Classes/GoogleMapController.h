@@ -12,6 +12,7 @@
 - (void)setCameraTargetBounds:(GMSCoordinateBounds*)bounds;
 - (void)setCompassEnabled:(BOOL)enabled;
 - (void)setMapType:(GMSMapViewType)type;
+- (void)setMapStyle:(NSString*)style;
 - (void)setMinZoom:(float)minZoom maxZoom:(float)maxZoom;
 - (void)setRotateGesturesEnabled:(BOOL)enabled;
 - (void)setScrollGesturesEnabled:(BOOL)enabled;
@@ -23,7 +24,7 @@
 
 // Defines map overlay controllable from Flutter.
 @interface FLTGoogleMapController
-    : NSObject <GMSMapViewDelegate, FLTGoogleMapOptionsSink, FlutterPlatformView>
+: NSObject <GMSMapViewDelegate, FLTGoogleMapOptionsSink, FlutterPlatformView>
 - (instancetype)initWithFrame:(CGRect)frame
                viewIdentifier:(int64_t)viewId
                     arguments:(id _Nullable)args
