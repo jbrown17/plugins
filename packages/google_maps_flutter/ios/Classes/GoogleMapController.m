@@ -217,6 +217,10 @@ static void interpretMarkerOptions(id json, id<FLTGoogleMapMarkerOptionsSink> si
 
 - (void)setMyLocationEnabled:(BOOL)enabled {
     _mapView.myLocationEnabled = enabled;
+    _mapView.settings.myLocationButton = false;
+}
+
+- (void)setMyLocationButtonEnabled:(BOOL)enabled {
     _mapView.settings.myLocationButton = enabled;
 }
 
