@@ -131,9 +131,10 @@ class GoogleMapController extends ChangeNotifier {
   ///
   /// The returned [Future] completes after the change has been started on the
   /// platform side.
-  Future<void> animateCamera(CameraUpdate cameraUpdate) async {
+  Future<void> animateCamera(CameraUpdate cameraUpdate, {double duration = 0.0}) async {
     await _channel.invokeMethod('camera#animate', <String, dynamic>{
       'cameraUpdate': cameraUpdate._toJson(),
+      'duration': duration
     });
   }
 

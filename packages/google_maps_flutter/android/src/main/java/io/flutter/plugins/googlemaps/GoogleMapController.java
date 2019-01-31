@@ -134,8 +134,9 @@ final class GoogleMapController
     googleMap.moveCamera(cameraUpdate);
   }
 
-  private void animateCamera(CameraUpdate cameraUpdate) {
-    googleMap.animateCamera(cameraUpdate);
+  private void animateCamera(CameraUpdate cameraUpdate, Double duration) {
+    googleMap.animateCamera(cameraUpdate, duration.intValue(), null);
+//    googleMap.animateCamera(cameraUpdate);
   }
 
   private CameraPosition getCameraPosition() {
@@ -208,9 +209,9 @@ final class GoogleMapController
         }
       case "camera#animate":
         {
-          final CameraUpdate cameraUpdate =
-              Convert.toCameraUpdate(call.argument("cameraUpdate"), density);
-          animateCamera(cameraUpdate);
+          final CameraUpdate cameraUpdate = Convert.toCameraUpdate(call.argument("cameraUpdate"), density);
+          final Double duration = call.argument("duration");
+          animateCamera(cameraUpdate, duration);
           result.success(null);
           break;
         }
