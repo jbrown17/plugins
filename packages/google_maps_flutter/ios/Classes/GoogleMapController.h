@@ -32,7 +32,7 @@
                     registrar:(NSObject<FlutterPluginRegistrar>*)registrar;
 - (void)showAtX:(CGFloat)x Y:(CGFloat)y;
 - (void)hide;
-- (void)animateWithCameraUpdate:(GMSCameraUpdate*)cameraUpdate;
+- (void)animateWithCameraUpdate:(GMSCameraUpdate*)cameraUpdate :(float)duration;
 - (void)moveWithCameraUpdate:(GMSCameraUpdate*)cameraUpdate;
 - (GMSCameraPosition*)cameraPosition;
 - (NSString*)addMarkerWithPosition:(CLLocationCoordinate2D)position;
