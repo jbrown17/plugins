@@ -380,4 +380,28 @@ class GoogleMapController extends ChangeNotifier {
     if (result == null) return null;
     return VisibleRegion._fromJson(result);
   }
+
+  Future<bool> isCoordinateOnScreen({@required LatLng position}) async {
+    dynamic result = await _channel.invokeMethod("map#isCoordinateOnScreen", <String, dynamic> {
+      "lat": position.latitude,
+      "lng": position.longitude
+    });
+    return result;
+  }
+
+  Future<Point> coordinateToScreenLocation({@required LatLng position}) async {
+    dynamic result = await _channel.invokeMethod("map#coordinateToScreenLocation", <String, dynamic> {
+      "lat": position.latitude,
+      "lng": position.longitude
+    });
+    return Point(result["x"], result["y"]);
+  }
+
+  Future<LatLng> coordinateFromScreenLocation({@required Point point}) async {
+    dynamic result = await _channel.invokeMethod("map#coordinateFromScreenLocation", <String, dynamic> {
+      "x": point.x,
+      "y": point.y
+    });
+    return LatLng(result["lat"], result["lng"]);
+  }
 }

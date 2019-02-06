@@ -16,6 +16,7 @@ import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.graphics.Point;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -44,7 +45,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /** Controller of a single GoogleMaps MapView instance. */
 final class GoogleMapController
-    implements Application.ActivityLifecycleCallbacks,
+        implements Application.ActivityLifecycleCallbacks,
         GoogleMap.OnCameraIdleListener,
         GoogleMap.OnCameraMoveListener,
         GoogleMap.OnCameraMoveStartedListener,
@@ -77,11 +78,11 @@ final class GoogleMapController
   private final Context context;
 
   GoogleMapController(
-      int id,
-      Context context,
-      AtomicInteger activityState,
-      PluginRegistry.Registrar registrar,
-      GoogleMapOptions options) {
+          int id,
+          Context context,
+          AtomicInteger activityState,
+          PluginRegistry.Registrar registrar,
+          GoogleMapOptions options) {
     this.id = id;
     this.context = context;
     this.activityState = activityState;
@@ -91,7 +92,7 @@ final class GoogleMapController
     this.polylines = new HashMap<>();
     this.density = context.getResources().getDisplayMetrics().density;
     methodChannel =
-        new MethodChannel(registrar.messenger(), "plugins.flutter.io/google_maps_" + id);
+            new MethodChannel(registrar.messenger(), "plugins.flutter.io/google_maps_" + id);
     methodChannel.setMethodCallHandler(this);
     this.registrarActivityHashCode = registrar.activity().hashCode();
   }
@@ -133,7 +134,7 @@ final class GoogleMapController
         break;
       default:
         throw new IllegalArgumentException(
-            "Cannot interpret " + activityState.get() + " as an activity state");
+                "Cannot interpret " + activityState.get() + " as an activity state");
     }
     registrar.activity().getApplication().registerActivityLifecycleCallbacks(this);
     mapView.getMapAsync(this);
@@ -231,50 +232,50 @@ final class GoogleMapController
         mapReadyResult = result;
         break;
       case "map#update":
-        {
-          Convert.interpretGoogleMapOptions(call.argument("options"), this);
-          result.success(Convert.toJson(getCameraPosition()));
-          break;
-        }
+      {
+        Convert.interpretGoogleMapOptions(call.argument("options"), this);
+        result.success(Convert.toJson(getCameraPosition()));
+        break;
+      }
       case "camera#move":
-        {
-          final CameraUpdate cameraUpdate =
-              Convert.toCameraUpdate(call.argument("cameraUpdate"), density);
-          moveCamera(cameraUpdate);
-          result.success(null);
-          break;
-        }
+      {
+        final CameraUpdate cameraUpdate =
+                Convert.toCameraUpdate(call.argument("cameraUpdate"), density);
+        moveCamera(cameraUpdate);
+        result.success(null);
+        break;
+      }
       case "camera#animate":
-        {
-          final CameraUpdate cameraUpdate = Convert.toCameraUpdate(call.argument("cameraUpdate"), density);
-          final Double duration = call.argument("duration");
-          animateCamera(cameraUpdate, duration);
-          result.success(null);
-          break;
-        }
+      {
+        final CameraUpdate cameraUpdate = Convert.toCameraUpdate(call.argument("cameraUpdate"), density);
+        final Double duration = call.argument("duration");
+        animateCamera(cameraUpdate, duration);
+        result.success(null);
+        break;
+      }
       case "marker#add":
-        {
-          final MarkerBuilder markerBuilder = newMarkerBuilder();
-          Convert.interpretMarkerOptions(call.argument("options"), markerBuilder);
-          final String markerId = markerBuilder.build();
-          result.success(markerId);
-          break;
-        }
+      {
+        final MarkerBuilder markerBuilder = newMarkerBuilder();
+        Convert.interpretMarkerOptions(call.argument("options"), markerBuilder);
+        final String markerId = markerBuilder.build();
+        result.success(markerId);
+        break;
+      }
       case "marker#remove":
-        {
-          final String markerId = call.argument("marker");
-          removeMarker(markerId);
-          result.success(null);
-          break;
-        }
+      {
+        final String markerId = call.argument("marker");
+        removeMarker(markerId);
+        result.success(null);
+        break;
+      }
       case "marker#update":
-        {
-          final String markerId = call.argument("marker");
-          final MarkerController marker = marker(markerId);
-          Convert.interpretMarkerOptions(call.argument("options"), marker);
-          result.success(null);
-          break;
-        }
+      {
+        final String markerId = call.argument("marker");
+        final MarkerController marker = marker(markerId);
+        Convert.interpretMarkerOptions(call.argument("options"), marker);
+        result.success(null);
+        break;
+      }
       case "map#setStyle":
       {
         final String style = call.argument("style");
@@ -282,7 +283,7 @@ final class GoogleMapController
         result.success(null);
         break;
       }
-     case "polyline#add":
+      case "polyline#add":
       {
         final PolylineBuilder polylineBuilder = newPolylineBuilder();
         Convert.interpretPolylineOptions(call.argument("options"), polylineBuilder);
@@ -311,7 +312,22 @@ final class GoogleMapController
         result.success(data);
         break;
       }
-
+      case "map#coordinateFromScreenLocation":
+      {
+        Point point = new Point((Integer) call.argument("x"), (Integer) call.argument("y"));
+        final HashMap<String, Double> data = coordinateFromScreenLocation(point);
+        result.success(data);
+      }
+      case "map#coordinateToScreenLocation":
+      {
+        LatLng position = new LatLng((Double) call.argument("lat"), (Integer) call.argument("lng"));
+        final HashMap<String, Integer> data = coordinateToScreenLocation(position);
+        result.success(data);
+      }
+      case "map#isCoordinateOnScreen":
+        LatLng position = new LatLng((Double) call.argument("lat"), (Integer) call.argument("lng"));
+        final boolean isOnScreen = isCoordinateOnScreen(position);
+        result.success(isOnScreen);
       default:
         result.notImplemented();
     }
@@ -566,6 +582,28 @@ final class GoogleMapController
     return null;
   }
 
+  private boolean isCoordinateOnScreen(LatLng position) {
+    return googleMap.getProjection().getVisibleRegion().latLngBounds.contains(position);
+  }
+
+  private HashMap<String, Integer> coordinateToScreenLocation(LatLng position) {
+    Point point = googleMap.getProjection().toScreenLocation(position);
+    HashMap<String, Integer> data = new HashMap();
+    data.put("x", point.x);
+    data.put("y", point.y);
+
+    return data;
+  }
+
+  private HashMap<String, Double> coordinateFromScreenLocation(Point point) {
+    LatLng position = googleMap.getProjection().fromScreenLocation(point);
+    HashMap<String, Double> data = new HashMap();
+    data.put("latitude", position.latitude);
+    data.put("longitude", position.longitude);
+
+    return data;
+  }
+
   private void updateMyLocationEnabled() {
     if (hasLocationPermission()) {
       googleMap.setMyLocationEnabled(myLocationEnabled);
@@ -579,7 +617,7 @@ final class GoogleMapController
   private boolean hasLocationPermission() {
     return checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
             == PackageManager.PERMISSION_GRANTED
-        || checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
+            || checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
             == PackageManager.PERMISSION_GRANTED;
   }
 
@@ -588,6 +626,6 @@ final class GoogleMapController
       throw new IllegalArgumentException("permission is null");
     }
     return context.checkPermission(
-        permission, android.os.Process.myPid(), android.os.Process.myUid());
+            permission, android.os.Process.myPid(), android.os.Process.myUid());
   }
 }
