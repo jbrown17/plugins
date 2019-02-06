@@ -145,7 +145,7 @@ static void interpretPolylineOptions(id json, id<FLTGoogleMapPolylineOptionsSink
         result(data);
     }
     else if ([call.method isEqualToString:@"map#coordinateForPoint"]) {
-        NSDictionary *data = [self coordinateFromScreenLocation:toDouble(call.arguments[@"x"]) Y:toDouble(call.arguments[@"y"])];
+        NSDictionary *data = [self coordinateForPoint:toDouble(call.arguments[@"x"]) Y:toDouble(call.arguments[@"y"])];
         result(data);
     }
     else if ([call.method isEqualToString:@"map#pointForCoordinate"]) {
