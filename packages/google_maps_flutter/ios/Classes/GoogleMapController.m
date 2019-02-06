@@ -140,6 +140,10 @@ static void interpretPolylineOptions(id json, id<FLTGoogleMapPolylineOptionsSink
         [self setMapStyle:call.arguments[@"style"]];
         result(nil);
     }
+    // else if ([call.method isEqualToString:@"map#getVisibleRegion"]) {
+    //     [self setMapStyle:call.arguments[@"style"]];
+    //     result(nil);
+    // }
   else {
     result(FlutterMethodNotImplemented);
   }
@@ -274,6 +278,12 @@ static void interpretPolylineOptions(id json, id<FLTGoogleMapPolylineOptionsSink
 
 - (void)setMyLocationButtonEnabled:(BOOL)enabled {
     _mapView.settings.myLocationButton = enabled;
+}
+
+- (void)getVisibleRegion {
+    // GMSProjection *projection = _mapView.projection;
+    // GMSVisibleRegion region = projection.visibleRegion;
+//    NSDictionary *data = @{ @"farLeft" : region.farLeft.latitude, "farRight" : region.farRight.latitude};
 }
 
 #pragma mark - GMSMapViewDelegate methods

@@ -32,6 +32,7 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
+import com.google.android.gms.maps.model.VisibleRegion;
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.PluginRegistry;
@@ -304,6 +305,12 @@ final class GoogleMapController
         result.success(null);
         break;
       }
+      case "map#getVisibleRegion":
+      {
+        final HashMap<String, Object> data = getVisibleRegion();
+        result.success(data);
+        break;
+      }
 
       default:
         result.notImplemented();
@@ -514,6 +521,49 @@ final class GoogleMapController
     if (googleMap != null) {
       updateMyLocationEnabled();
     }
+  }
+
+  private HashMap<String, Object> getVisibleRegion() {
+    if (googleMap != null) {
+      VisibleRegion region = googleMap.getProjection().getVisibleRegion();
+
+      HashMap data = new HashMap<String, Object>();
+      HashMap<String, Double> farLeft = new HashMap<>();
+      HashMap<String, Double> farRight = new HashMap<>();
+      HashMap<String, Double> nearLeft = new HashMap<>();
+      HashMap<String, Double> nearRight = new HashMap<>();
+
+      HashMap<String, Object> latLngBounds = new HashMap<>();
+      HashMap<String, Double> northeast = new HashMap<>();
+      HashMap<String, Double> southwest = new HashMap<>();
+      HashMap<String, Double> center = new HashMap<>();
+
+      farLeft.put("latitude", region.farLeft.latitude);
+      farLeft.put("longitude", region.farLeft.longitude);
+      farRight.put("latitude", region.farRight.latitude);
+      farRight.put("longitude", region.farRight.longitude);
+      nearLeft.put("latitude", region.nearLeft.latitude);
+      nearLeft.put("longitude", region.nearLeft.longitude);
+      nearRight.put("latitude", region.nearRight.latitude);
+      nearRight.put("longitude", region.nearRight.longitude);
+      northeast.put("latitude", region.latLngBounds.northeast.latitude);
+      northeast.put("longitude", region.latLngBounds.northeast.longitude);
+      southwest.put("latitude", region.latLngBounds.southwest.latitude);
+      southwest.put("longitude", region.latLngBounds.southwest.longitude);
+      center.put("latitude", region.latLngBounds.getCenter().latitude);
+      center.put("longitude", region.latLngBounds.getCenter().longitude);
+      latLngBounds.put("northeast", northeast);
+      latLngBounds.put("southwest", southwest);
+      latLngBounds.put("center", center);
+      data.put("farLeft", farLeft);
+      data.put("farRight", farRight);
+      data.put("nearLeft", nearLeft);
+      data.put("nearRight", nearRight);
+      data.put("latLngBounds", latLngBounds);
+
+      return data;
+    }
+    return null;
   }
 
   private void updateMyLocationEnabled() {

@@ -374,4 +374,10 @@ class GoogleMapController extends ChangeNotifier {
     });
     _polylines.remove(id);
   }
+
+  Future<VisibleRegion> getVisibleRegion() async {
+    dynamic result = await _channel.invokeMethod("map#getVisibleRegion");
+    if (result == null) return null;
+    return VisibleRegion._fromJson(result);
+  }
 }
