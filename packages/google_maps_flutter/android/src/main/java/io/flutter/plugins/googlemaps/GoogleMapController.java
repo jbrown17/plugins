@@ -16,20 +16,24 @@ import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.graphics.Point;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import com.google.android.gms.maps.CameraUpdate;
-import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.GoogleMapOptions;
 import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.CameraPosition;
+import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
+import com.google.android.gms.maps.model.PolylineOptions;
+import com.google.android.gms.maps.model.VisibleRegion;
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.PluginRegistry;
@@ -41,16 +45,20 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /** Controller of a single GoogleMaps MapView instance. */
 final class GoogleMapController
-    implements Application.ActivityLifecycleCallbacks,
+        implements Application.ActivityLifecycleCallbacks,
         GoogleMap.OnCameraIdleListener,
         GoogleMap.OnCameraMoveListener,
         GoogleMap.OnCameraMoveStartedListener,
         GoogleMap.OnInfoWindowClickListener,
         GoogleMap.OnMarkerClickListener,
+        GoogleMap.OnPolylineClickListener,
+        GoogleMap.OnMapClickListener,
+        GoogleMap.OnMapLongClickListener,
         GoogleMapOptionsSink,
         MethodChannel.MethodCallHandler,
         OnMapReadyCallback,
         OnMarkerTappedListener,
+        OnPolylineTappedListener,
         PlatformView {
   private static final String TAG = "GoogleMapController";
   private final int id;
@@ -59,6 +67,7 @@ final class GoogleMapController
   private final PluginRegistry.Registrar registrar;
   private final MapView mapView;
   private final Map<String, MarkerController> markers;
+  private final Map<String, PolylineController> polylines;
   private GoogleMap googleMap;
   private boolean trackCameraPosition = false;
   private boolean myLocationEnabled = false;
@@ -69,20 +78,21 @@ final class GoogleMapController
   private final Context context;
 
   GoogleMapController(
-      int id,
-      Context context,
-      AtomicInteger activityState,
-      PluginRegistry.Registrar registrar,
-      GoogleMapOptions options) {
+          int id,
+          Context context,
+          AtomicInteger activityState,
+          PluginRegistry.Registrar registrar,
+          GoogleMapOptions options) {
     this.id = id;
     this.context = context;
     this.activityState = activityState;
     this.registrar = registrar;
     this.mapView = new MapView(context, options);
     this.markers = new HashMap<>();
+    this.polylines = new HashMap<>();
     this.density = context.getResources().getDisplayMetrics().density;
     methodChannel =
-        new MethodChannel(registrar.messenger(), "plugins.flutter.io/google_maps_" + id);
+            new MethodChannel(registrar.messenger(), "plugins.flutter.io/google_maps_" + id);
     methodChannel.setMethodCallHandler(this);
     this.registrarActivityHashCode = registrar.activity().hashCode();
   }
@@ -124,7 +134,7 @@ final class GoogleMapController
         break;
       default:
         throw new IllegalArgumentException(
-            "Cannot interpret " + activityState.get() + " as an activity state");
+                "Cannot interpret " + activityState.get() + " as an activity state");
     }
     registrar.activity().getApplication().registerActivityLifecycleCallbacks(this);
     mapView.getMapAsync(this);
@@ -168,6 +178,31 @@ final class GoogleMapController
     return marker;
   }
 
+  private PolylineBuilder newPolylineBuilder() {
+    return new PolylineBuilder(this);
+  }
+
+  Polyline addPolyline(PolylineOptions polylineOptions, boolean consumesTapEvents) {
+    final Polyline polyline = googleMap.addPolyline(polylineOptions);
+    polylines.put(polyline.getId(), new PolylineController(polyline, consumesTapEvents, this));
+    return polyline;
+  }
+
+  private void removePolyline(String polylineId) {
+    final PolylineController polylineController = polylines.remove(polylineId);
+    if (polylineController != null) {
+      polylineController.remove();
+    }
+  }
+
+  private PolylineController polyline(String polylineId) {
+    final PolylineController polyline = polylines.get(polylineId);
+    if (polyline == null) {
+      throw new IllegalArgumentException("Unknown polyline: " + polylineId);
+    }
+    return polyline;
+  }
+
   @Override
   public void onMapReady(GoogleMap googleMap) {
     this.googleMap = googleMap;
@@ -180,6 +215,9 @@ final class GoogleMapController
     googleMap.setOnCameraMoveListener(this);
     googleMap.setOnCameraIdleListener(this);
     googleMap.setOnMarkerClickListener(this);
+    googleMap.setOnPolylineClickListener(this);
+    googleMap.setOnMapLongClickListener(this);
+    googleMap.setOnMapClickListener(this);
     updateMyLocationEnabled();
   }
 
@@ -194,50 +232,50 @@ final class GoogleMapController
         mapReadyResult = result;
         break;
       case "map#update":
-        {
-          Convert.interpretGoogleMapOptions(call.argument("options"), this);
-          result.success(Convert.toJson(getCameraPosition()));
-          break;
-        }
+      {
+        Convert.interpretGoogleMapOptions(call.argument("options"), this);
+        result.success(Convert.toJson(getCameraPosition()));
+        break;
+      }
       case "camera#move":
-        {
-          final CameraUpdate cameraUpdate =
-              Convert.toCameraUpdate(call.argument("cameraUpdate"), density);
-          moveCamera(cameraUpdate);
-          result.success(null);
-          break;
-        }
+      {
+        final CameraUpdate cameraUpdate =
+                Convert.toCameraUpdate(call.argument("cameraUpdate"), density);
+        moveCamera(cameraUpdate);
+        result.success(null);
+        break;
+      }
       case "camera#animate":
-        {
-          final CameraUpdate cameraUpdate = Convert.toCameraUpdate(call.argument("cameraUpdate"), density);
-          final Double duration = call.argument("duration");
-          animateCamera(cameraUpdate, duration);
-          result.success(null);
-          break;
-        }
+      {
+        final CameraUpdate cameraUpdate = Convert.toCameraUpdate(call.argument("cameraUpdate"), density);
+        final Double duration = call.argument("duration");
+        animateCamera(cameraUpdate, duration);
+        result.success(null);
+        break;
+      }
       case "marker#add":
-        {
-          final MarkerBuilder markerBuilder = newMarkerBuilder();
-          Convert.interpretMarkerOptions(call.argument("options"), markerBuilder);
-          final String markerId = markerBuilder.build();
-          result.success(markerId);
-          break;
-        }
+      {
+        final MarkerBuilder markerBuilder = newMarkerBuilder();
+        Convert.interpretMarkerOptions(call.argument("options"), markerBuilder);
+        final String markerId = markerBuilder.build();
+        result.success(markerId);
+        break;
+      }
       case "marker#remove":
-        {
-          final String markerId = call.argument("marker");
-          removeMarker(markerId);
-          result.success(null);
-          break;
-        }
+      {
+        final String markerId = call.argument("marker");
+        removeMarker(markerId);
+        result.success(null);
+        break;
+      }
       case "marker#update":
-        {
-          final String markerId = call.argument("marker");
-          final MarkerController marker = marker(markerId);
-          Convert.interpretMarkerOptions(call.argument("options"), marker);
-          result.success(null);
-          break;
-        }
+      {
+        final String markerId = call.argument("marker");
+        final MarkerController marker = marker(markerId);
+        Convert.interpretMarkerOptions(call.argument("options"), marker);
+        result.success(null);
+        break;
+      }
       case "map#setStyle":
       {
         final String style = call.argument("style");
@@ -245,6 +283,54 @@ final class GoogleMapController
         result.success(null);
         break;
       }
+      case "polyline#add":
+      {
+        final PolylineBuilder polylineBuilder = newPolylineBuilder();
+        Convert.interpretPolylineOptions(call.argument("options"), polylineBuilder);
+        final String polylineId = polylineBuilder.build();
+        result.success(polylineId);
+        break;
+      }
+      case "polyline#remove":
+      {
+        final String polylineId = call.argument("polyline");
+        removePolyline(polylineId);
+        result.success(null);
+        break;
+      }
+      case "polyline#update":
+      {
+        final String polylineId = call.argument("polyline");
+        final PolylineController polyline = polyline(polylineId);
+        Convert.interpretPolylineOptions(call.argument("options"), polyline);
+        result.success(null);
+        break;
+      }
+      case "map#getVisibleRegion":
+      {
+        final HashMap<String, Object> data = getVisibleRegion();
+        result.success(data);
+        break;
+      }
+      case "map#coordinateForPoint":
+      {
+        Point point = new Point((Integer) call.argument("x"), (Integer) call.argument("y"));
+        final HashMap<String, Double> data = coordinateForPoint(point);
+        result.success(data);
+        break;
+      }
+      case "map#pointForCoordinate":
+      {
+        LatLng position = new LatLng((Double) call.argument("lat"), (Double) call.argument("lng"));
+        final HashMap<String, Integer> data = pointForCoordinate(position);
+        result.success(data);
+        break;
+      }
+      case "map#isCoordinateOnScreen":
+        LatLng position = new LatLng((Double) call.argument("lat"), (Double) call.argument("lng"));
+        final boolean isOnScreen = isCoordinateOnScreen(position);
+        result.success(isOnScreen);
+        break;
       default:
         result.notImplemented();
     }
@@ -288,9 +374,38 @@ final class GoogleMapController
   }
 
   @Override
+  public void onPolylineTapped(Polyline polyline) {
+    final Map<String, Object> arguments = new HashMap<>(2);
+    arguments.put("polyline", polyline.getId());
+    methodChannel.invokeMethod("polyline#onTap", arguments);
+  }
+
+  @Override
+  public void onMapClick(LatLng latLng) {
+    final Map<String, Object> arguments = new HashMap<>(2);
+    arguments.put("latitude", latLng.latitude);
+    arguments.put("longitude", latLng.longitude);
+    methodChannel.invokeMethod("map#onTap", arguments);
+  }
+
+  @Override
+  public void onMapLongClick(LatLng latLng) {
+    final Map<String, Object> arguments = new HashMap<>(2);
+    arguments.put("latitude", latLng.latitude);
+    arguments.put("longitude", latLng.longitude);
+    methodChannel.invokeMethod("map#onLongTap", arguments);
+  }
+
+  @Override
   public boolean onMarkerClick(Marker marker) {
     final MarkerController markerController = markers.get(marker.getId());
     return (markerController != null && markerController.onTap());
+  }
+
+  @Override
+  public void onPolylineClick(Polyline polyline) {
+    final PolylineController polylineController = polylines.get(polyline.getId());
+    polylineController.onTap();
   }
 
   @Override
@@ -362,11 +477,6 @@ final class GoogleMapController
   // GoogleMapOptionsSink methods
 
   @Override
-  public void setCameraPosition(CameraPosition position) {
-    googleMap.moveCamera(CameraUpdateFactory.newCameraPosition(position));
-  }
-
-  @Override
   public void setCameraTargetBounds(LatLngBounds bounds) {
     googleMap.setLatLngBoundsForCameraTarget(bounds);
   }
@@ -432,6 +542,71 @@ final class GoogleMapController
     }
   }
 
+  private HashMap<String, Object> getVisibleRegion() {
+    if (googleMap != null) {
+      VisibleRegion region = googleMap.getProjection().getVisibleRegion();
+
+      HashMap data = new HashMap<String, Object>();
+      HashMap<String, Double> farLeft = new HashMap<>();
+      HashMap<String, Double> farRight = new HashMap<>();
+      HashMap<String, Double> nearLeft = new HashMap<>();
+      HashMap<String, Double> nearRight = new HashMap<>();
+
+      HashMap<String, Object> latLngBounds = new HashMap<>();
+      HashMap<String, Double> northeast = new HashMap<>();
+      HashMap<String, Double> southwest = new HashMap<>();
+      HashMap<String, Double> center = new HashMap<>();
+
+      farLeft.put("latitude", region.farLeft.latitude);
+      farLeft.put("longitude", region.farLeft.longitude);
+      farRight.put("latitude", region.farRight.latitude);
+      farRight.put("longitude", region.farRight.longitude);
+      nearLeft.put("latitude", region.nearLeft.latitude);
+      nearLeft.put("longitude", region.nearLeft.longitude);
+      nearRight.put("latitude", region.nearRight.latitude);
+      nearRight.put("longitude", region.nearRight.longitude);
+      northeast.put("latitude", region.latLngBounds.northeast.latitude);
+      northeast.put("longitude", region.latLngBounds.northeast.longitude);
+      southwest.put("latitude", region.latLngBounds.southwest.latitude);
+      southwest.put("longitude", region.latLngBounds.southwest.longitude);
+      center.put("latitude", region.latLngBounds.getCenter().latitude);
+      center.put("longitude", region.latLngBounds.getCenter().longitude);
+      latLngBounds.put("northeast", northeast);
+      latLngBounds.put("southwest", southwest);
+      latLngBounds.put("center", center);
+      data.put("farLeft", farLeft);
+      data.put("farRight", farRight);
+      data.put("nearLeft", nearLeft);
+      data.put("nearRight", nearRight);
+      data.put("latLngBounds", latLngBounds);
+
+      return data;
+    }
+    return null;
+  }
+
+  private boolean isCoordinateOnScreen(LatLng position) {
+    return googleMap.getProjection().getVisibleRegion().latLngBounds.contains(position);
+  }
+
+  private HashMap<String, Integer> pointForCoordinate(LatLng position) {
+    Point point = googleMap.getProjection().toScreenLocation(position);
+    HashMap<String, Integer> data = new HashMap();
+    data.put("x", point.x);
+    data.put("y", point.y);
+
+    return data;
+  }
+
+  private HashMap<String, Double> coordinateForPoint(Point point) {
+    LatLng position = googleMap.getProjection().fromScreenLocation(point);
+    HashMap<String, Double> data = new HashMap();
+    data.put("latitude", position.latitude);
+    data.put("longitude", position.longitude);
+
+    return data;
+  }
+
   private void updateMyLocationEnabled() {
     if (hasLocationPermission()) {
       googleMap.setMyLocationEnabled(myLocationEnabled);
@@ -445,7 +620,7 @@ final class GoogleMapController
   private boolean hasLocationPermission() {
     return checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
             == PackageManager.PERMISSION_GRANTED
-        || checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
+            || checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
             == PackageManager.PERMISSION_GRANTED;
   }
 
@@ -454,6 +629,6 @@ final class GoogleMapController
       throw new IllegalArgumentException("permission is null");
     }
     return context.checkPermission(
-        permission, android.os.Process.myPid(), android.os.Process.myUid());
+            permission, android.os.Process.myPid(), android.os.Process.myUid());
   }
 }

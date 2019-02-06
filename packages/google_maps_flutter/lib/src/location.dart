@@ -38,9 +38,7 @@ class LatLng {
   }
 
   @override
-  String toString() {
-    return '$runtimeType[$latitude, $longitude]';
-  }
+  String toString() => '$runtimeType($latitude, $longitude)';
 
   @override
   bool operator ==(Object o) {
@@ -75,11 +73,12 @@ class LatLngBounds {
   /// The northeast corner of the rectangle.
   final LatLng northeast;
 
-  dynamic _toJson() {
+  dynamic _toList() {
     return <dynamic>[southwest._toJson(), northeast._toJson()];
   }
 
-  static LatLngBounds _fromJson(dynamic json) {
+  @visibleForTesting
+  static LatLngBounds fromList(dynamic json) {
     if (json == null) {
       return null;
     }
@@ -91,7 +90,7 @@ class LatLngBounds {
 
   @override
   String toString() {
-    return '$runtimeType[$southwest, $northeast]';
+    return '$runtimeType($southwest, $northeast)';
   }
 
   @override
@@ -103,4 +102,39 @@ class LatLngBounds {
 
   @override
   int get hashCode => hashValues(southwest, northeast);
+}
+
+class VisibleRegion {
+  VisibleRegion({
+    @required this.farLeft,
+    @required this.farRight,
+    @required this.nearLeft,
+    @required this.nearRight,
+  });
+
+  LatLng farLeft;
+  LatLng farRight;
+  LatLng nearLeft;
+  LatLng nearRight;
+
+  static VisibleRegion _fromJson(dynamic json) {
+    return VisibleRegion(
+      farLeft: LatLng(
+        json["farLeft"]["latitude"],
+        json["farLeft"]["longitude"]
+      ),
+      farRight: LatLng(
+          json["farRight"]["latitude"],
+          json["farRight"]["longitude"]
+      ),
+      nearLeft: LatLng(
+        json["nearLeft"]["latitude"],
+        json["nearLeft"]["longitude"]
+      ),
+      nearRight: LatLng(
+        json["nearRight"]["latitude"],
+        json["nearRight"]["longitude"]
+      )
+    );
+  }
 }

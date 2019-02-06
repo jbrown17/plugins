@@ -4,6 +4,12 @@
 
 #import "GoogleMapController.h"
 
+#define UIColorFromRGB(rgbValue)                                       \
+[UIColor colorWithRed:((float)((rgbValue & 0xFF0000) >> 16)) / 255.0 \
+green:((float)((rgbValue & 0xFF00) >> 8)) / 255.0    \
+blue:((float)(rgbValue & 0xFF)) / 255.0             \
+alpha:1.0]
+
 #pragma mark - Conversion of JSON-like values sent via platform channels. Forward declarations.
 
 static id positionToJson(GMSCameraPosition* position);
@@ -12,9 +18,12 @@ static CLLocationCoordinate2D toLocation(id json);
 static GMSCameraPosition* toOptionalCameraPosition(id json);
 static GMSCoordinateBounds* toOptionalBounds(id json);
 static GMSCameraUpdate* toCameraUpdate(id json);
+static GMSPath* toPath(id json);
 static void interpretMapOptions(id json, id<FLTGoogleMapOptionsSink> sink);
 static void interpretMarkerOptions(id json, id<FLTGoogleMapMarkerOptionsSink> sink,
                                    NSObject<FlutterPluginRegistrar>* registrar);
+static void interpretPolylineOptions(id json, id<FLTGoogleMapPolylineOptionsSink> sink,
+                                     NSObject<FlutterPluginRegistrar>* registrar);
 
 @implementation FLTGoogleMapFactory {
     NSObject<FlutterPluginRegistrar>* _registrar;
@@ -46,6 +55,7 @@ static void interpretMarkerOptions(id json, id<FLTGoogleMapMarkerOptionsSink> si
     GMSMapView* _mapView;
     int64_t _viewId;
     NSMutableDictionary* _markers;
+    NSMutableDictionary* _polylines;
     FlutterMethodChannel* _channel;
     BOOL _trackCameraPosition;
     NSObject<FlutterPluginRegistrar>* _registrar;
@@ -58,11 +68,12 @@ static void interpretMarkerOptions(id json, id<FLTGoogleMapMarkerOptionsSink> si
     if ([super init]) {
         _viewId = viewId;
         
-        GMSCameraPosition* camera = toOptionalCameraPosition(args[@"cameraPosition"]);
+        GMSCameraPosition* camera = toOptionalCameraPosition(args[@"initialCameraPosition"]);
         _mapView = [GMSMapView mapWithFrame:frame camera:camera];
         _markers = [NSMutableDictionary dictionaryWithCapacity:1];
+        _polylines = [NSMutableDictionary dictionaryWithCapacity:1];
         _trackCameraPosition = NO;
-        interpretMapOptions(args, self);
+        interpretMapOptions(args[@"options"], self);
         NSString* channelName =
         [NSString stringWithFormat:@"plugins.flutter.io/google_maps_%lld", viewId];
         _channel = [FlutterMethodChannel methodChannelWithName:channelName
@@ -113,14 +124,60 @@ static void interpretMarkerOptions(id json, id<FLTGoogleMapMarkerOptionsSink> si
     } else if ([call.method isEqualToString:@"marker#remove"]) {
         [self removeMarkerWithId:call.arguments[@"marker"]];
         result(nil);
+    } else if ([call.method isEqualToString:@"polyline#add"]) {
+        NSDictionary* options = call.arguments[@"options"];
+        NSString* polylineId = [self addPolylineWithPath:toPath(options[@"points"])];
+        interpretPolylineOptions(options, [self polylineWithId:polylineId], _registrar);
+        result(polylineId);
+    } else if ([call.method isEqualToString:@"polyline#update"]) {
+        interpretPolylineOptions(call.arguments[@"options"],
+                                 [self polylineWithId:call.arguments[@"polyline"]], _registrar);
+        result(nil);
+    } else if ([call.method isEqualToString:@"polyline#remove"]) {
+        [self removePolylineWithId:call.arguments[@"polyline"]];
+        result(nil);
     } else if ([call.method isEqualToString:@"map#setStyle"]) {
         [self setMapStyle:call.arguments[@"style"]];
         result(nil);
+    }
+    else if ([call.method isEqualToString:@"map#getVisibleRegion"]) {
+        NSDictionary *data = [self getVisibleRegion];
+        result(data);
+    }
+    else if ([call.method isEqualToString:@"map#coordinateForPoint"]) {
+        NSDictionary *data = [self coordinateForPoint:toDouble(call.arguments[@"x"]) Y:toDouble(call.arguments[@"y"])];
+        result(data);
+    }
+    else if ([call.method isEqualToString:@"map#pointForCoordinate"]) {
+        NSDictionary *data = [self pointForCoordinate:toDouble(call.arguments[@"lat"]) Y:toDouble(call.arguments[@"lng"])];
+        result(data);
+    }
+    else if ([call.method isEqualToString:@"map#isCoordinateOnScreen"]) {
+        NSNumber *onscreen = [NSNumber numberWithBool:[self isCoordinateOnScreen:toDouble(call.arguments[@"lat"]) Y:toDouble(call.arguments[@"lng"])]];
+        result(onscreen);
     }
     else {
         result(FlutterMethodNotImplemented);
     }
 }
+
+- (BOOL)isCoordinateOnScreen:(double)x Y:(double)y {
+    CLLocationCoordinate2D position = CLLocationCoordinate2DMake(x, y);
+    return [_mapView.projection containsCoordinate:position];
+}
+
+- (NSDictionary*)coordinateForPoint:(double)x Y:(double)y {
+    CGPoint point = CGPointMake(x, y);
+    CLLocationCoordinate2D data = [_mapView.projection coordinateForPoint:point];
+    return @{ @"lat": @(data.latitude), @"lng": @(data.longitude)};
+}
+
+- (NSDictionary*)pointForCoordinate:(double)x Y:(double)y {
+    CLLocationCoordinate2D position = CLLocationCoordinate2DMake(x, y);
+    CGPoint data = [_mapView.projection pointForCoordinate:position];
+    return @{ @"x": @(data.x), @"y": @(data.y)};
+}
+
 
 - (void)showAtX:(CGFloat)x Y:(CGFloat)y {
     _mapView.frame =
@@ -174,6 +231,25 @@ static void interpretMarkerOptions(id json, id<FLTGoogleMapMarkerOptionsSink> si
     if (markerController) {
         [markerController setVisible:NO];
         [_markers removeObjectForKey:markerId];
+    }
+}
+
+- (NSString*)addPolylineWithPath:(GMSPath*)path {
+    FLTGoogleMapPolylineController* polylineController =
+    [[FLTGoogleMapPolylineController alloc] initWithPath:path mapView:_mapView];
+    _polylines[polylineController.polylineId] = polylineController;
+    return polylineController.polylineId;
+}
+
+- (FLTGoogleMapPolylineController*)polylineWithId:(NSString*)polylineId {
+    return _polylines[polylineId];
+}
+
+- (void)removePolylineWithId:(NSString*)polylineId {
+    FLTGoogleMapPolylineController* polylineController = _polylines[polylineId];
+    if (polylineController) {
+        [polylineController setVisible:NO];
+        [_polylines removeObjectForKey:polylineId];
     }
 }
 
@@ -234,6 +310,32 @@ static void interpretMarkerOptions(id json, id<FLTGoogleMapMarkerOptionsSink> si
     _mapView.settings.myLocationButton = enabled;
 }
 
+- (NSDictionary*)getVisibleRegion {
+    GMSProjection *projection = _mapView.projection;
+    GMSVisibleRegion region = projection.visibleRegion;
+    
+    NSDictionary *data = @{
+                           @"farLeft": @{
+                                   @"latitude": @(region.farLeft.latitude),
+                                   @"longitude": @(region.farLeft.longitude)
+                                   },
+                           @"farRight": @{
+                                   @"latitude": @(region.farRight.latitude),
+                                   @"longitude": @(region.farRight.longitude)
+                                   },
+                           @"nearLeft": @{
+                                   @"latitude": @(region.nearLeft.latitude),
+                                   @"longitude": @(region.nearLeft.longitude)
+                                   },
+                           @"nearRight": @{
+                                   @"latitude": @(region.nearRight.latitude),
+                                   @"longitude": @(region.nearRight.longitude)
+                                   },
+                           };
+    
+    return data;
+}
+
 #pragma mark - GMSMapViewDelegate methods
 
 - (void)mapView:(GMSMapView*)mapView willMove:(BOOL)gesture {
@@ -259,6 +361,23 @@ static void interpretMarkerOptions(id json, id<FLTGoogleMapMarkerOptionsSink> si
 - (void)mapView:(GMSMapView*)mapView didTapInfoWindowOfMarker:(GMSMarker*)marker {
     NSString* markerId = marker.userData[0];
     [_channel invokeMethod:@"infoWindow#onTap" arguments:@{@"marker" : markerId}];
+}
+
+- (void)mapView:(GMSMapView*)mapView didTapOverlay:(GMSOverlay*)overlay {
+    NSString* polylineId = overlay.userData[0];
+    [_channel invokeMethod:@"polyline#onTap" arguments:@{@"polyline" : polylineId}];
+}
+
+- (void)mapView:(GMSMapView*)mapView didTapAtCoordinate:(CLLocationCoordinate2D)coordinate {
+    [_channel
+     invokeMethod:@"map#onTap"
+     arguments:@{@"latitude" : @(coordinate.latitude), @"longitude" : @(coordinate.longitude)}];
+}
+
+- (void)mapView:(GMSMapView*)mapView didLongPressAtCoordinate:(CLLocationCoordinate2D)coordinate {
+    [_channel
+     invokeMethod:@"map#onLongTap"
+     arguments:@{@"latitude" : @(coordinate.latitude), @"longitude" : @(coordinate.longitude)}];
 }
 
 @end
@@ -304,6 +423,16 @@ static float toFloat(id json) {
 static CLLocationCoordinate2D toLocation(id json) {
     NSArray* data = json;
     return CLLocationCoordinate2DMake(toDouble(data[0]), toDouble(data[1]));
+}
+
+static GMSPath* toPath(id json) {
+    NSArray* data = json;
+    GMSMutablePath* path = [GMSMutablePath path];
+    for (id object in data) {
+        NSArray* d = object;
+        [path addCoordinate:CLLocationCoordinate2DMake(toDouble(d[0]), toDouble(d[1]))];
+    }
+    return path;
 }
 
 static CGPoint toPoint(id json) {
@@ -370,10 +499,6 @@ static GMSCameraUpdate* toCameraUpdate(id json) {
 
 static void interpretMapOptions(id json, id<FLTGoogleMapOptionsSink> sink) {
     NSDictionary* data = json;
-    id cameraPosition = data[@"cameraPosition"];
-    if (cameraPosition) {
-        [sink setCamera:toCameraPosition(cameraPosition)];
-    }
     id cameraTargetBounds = data[@"cameraTargetBounds"];
     if (cameraTargetBounds) {
         [sink setCameraTargetBounds:toOptionalBounds(cameraTargetBounds)];
@@ -476,6 +601,40 @@ static void interpretMarkerOptions(id json, id<FLTGoogleMapMarkerOptionsSink> si
     id rotation = data[@"rotation"];
     if (rotation) {
         [sink setRotation:toDouble(rotation)];
+    }
+    id visible = data[@"visible"];
+    if (visible) {
+        [sink setVisible:toBool(visible)];
+    }
+    id zIndex = data[@"zIndex"];
+    if (zIndex) {
+        [sink setZIndex:toInt(zIndex)];
+    }
+}
+
+static void interpretPolylineOptions(id json, id<FLTGoogleMapPolylineOptionsSink> sink,
+                                     NSObject<FlutterPluginRegistrar>* registrar) {
+    NSDictionary* data = json;
+    
+    id points = data[@"points"];
+    if (points) {
+        [sink setPoints:toPath(points)];
+    }
+    id clickable = data[@"clickable"];
+    if (clickable) {
+        [sink setClickable:toBool(clickable)];
+    }
+    id color = data[@"color"];
+    if (color) {
+        [sink setColor:UIColorFromRGB(toInt(color))];
+    }
+    id geodesic = data[@"geodesic"];
+    if (geodesic) {
+        [sink setGeodesic:toBool(geodesic)];
+    }
+    id width = data[@"width"];
+    if (width) {
+        [sink setWidth:(CGFloat)toFloat(width)];
     }
     id visible = data[@"visible"];
     if (visible) {
