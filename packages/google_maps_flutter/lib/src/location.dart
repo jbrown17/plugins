@@ -110,14 +110,12 @@ class VisibleRegion {
     @required this.farRight,
     @required this.nearLeft,
     @required this.nearRight,
-    @required this.latLngBounds,
   });
 
   LatLng farLeft;
   LatLng farRight;
   LatLng nearLeft;
   LatLng nearRight;
-  LatLngBounds latLngBounds;
 
   static VisibleRegion _fromJson(dynamic json) {
     return VisibleRegion(
@@ -136,16 +134,6 @@ class VisibleRegion {
       nearRight: LatLng(
         json["nearRight"]["latitude"],
         json["nearRight"]["longitude"]
-      ),
-      latLngBounds: LatLngBounds(
-        southwest: LatLng(
-          json["latLngBounds"]["southwest"]["latitude"],
-          json["latLngBounds"]["southwest"]["longitude"]
-        ),
-        northeast: LatLng(
-          json["latLngBounds"]["northeast"]["latitude"],
-          json["latLngBounds"]["northeast"]["longitude"]
-        ),
       )
     );
   }

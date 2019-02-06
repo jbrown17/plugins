@@ -41,6 +41,7 @@
 - (NSString*)addPolylineWithPath:(GMSPath*)path;
 - (FLTGoogleMapPolylineController*)polylineWithId:(NSString*)polylineId;
 - (void)removePolylineWithId:(NSString*)polylineId;
+- (NSDictionary*)getVisibleRegion;
 @end
 
 // Allows the engine to create new Google Map instances.

@@ -140,10 +140,10 @@ static void interpretPolylineOptions(id json, id<FLTGoogleMapPolylineOptionsSink
         [self setMapStyle:call.arguments[@"style"]];
         result(nil);
     }
-    // else if ([call.method isEqualToString:@"map#getVisibleRegion"]) {
-    //     [self setMapStyle:call.arguments[@"style"]];
-    //     result(nil);
-    // }
+    else if ([call.method isEqualToString:@"map#getVisibleRegion"]) {
+        NSDictionary *data = [self getVisibleRegion];
+        result(data);
+    }
   else {
     result(FlutterMethodNotImplemented);
   }
@@ -280,10 +280,30 @@ static void interpretPolylineOptions(id json, id<FLTGoogleMapPolylineOptionsSink
     _mapView.settings.myLocationButton = enabled;
 }
 
-- (void)getVisibleRegion {
-    // GMSProjection *projection = _mapView.projection;
-    // GMSVisibleRegion region = projection.visibleRegion;
-//    NSDictionary *data = @{ @"farLeft" : region.farLeft.latitude, "farRight" : region.farRight.latitude};
+- (NSDictionary*)getVisibleRegion {
+    GMSProjection *projection = _mapView.projection;
+    GMSVisibleRegion region = projection.visibleRegion;
+
+    NSDictionary *data = @{
+       @"farLeft": @{
+           @"latitude": @(region.farLeft.latitude),
+           @"longitude": @(region.farLeft.longitude)
+       },
+       @"farRight": @{
+           @"latitude": @(region.farRight.latitude),
+           @"longitude": @(region.farRight.longitude)
+       },
+       @"nearLeft": @{
+           @"latitude": @(region.nearLeft.latitude),
+           @"longitude": @(region.nearLeft.longitude)
+       },
+       @"nearRight": @{
+           @"latitude": @(region.nearRight.latitude),
+           @"longitude": @(region.nearRight.longitude)
+       },
+   };
+
+    return data;
 }
 
 #pragma mark - GMSMapViewDelegate methods
