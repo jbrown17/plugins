@@ -322,7 +322,7 @@ final class GoogleMapController
       case "map#pointForCoordinate":
       {
         LatLng position = new LatLng((Double) call.argument("lat"), (Double) call.argument("lng"));
-        final HashMap<String, Integer> data = coordinateToScreenLocation(position);
+        final HashMap<String, Integer> data = pointForCoordinate(position);
         result.success(data);
         break;
       }
