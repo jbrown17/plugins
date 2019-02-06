@@ -389,16 +389,16 @@ class GoogleMapController extends ChangeNotifier {
     return result;
   }
 
-  Future<Point> coordinateToScreenLocation({@required LatLng position}) async {
-    dynamic result = await _channel.invokeMethod("map#coordinateToScreenLocation", <String, dynamic> {
+  Future<Point> pointForCoordinate({@required LatLng position}) async {
+    dynamic result = await _channel.invokeMethod("map#pointForCoordinate", <String, dynamic> {
       "lat": position.latitude,
       "lng": position.longitude
     });
     return Point(result["x"], result["y"]);
   }
 
-  Future<LatLng> coordinateFromScreenLocation({@required Point point}) async {
-    dynamic result = await _channel.invokeMethod("map#coordinateFromScreenLocation", <String, dynamic> {
+  Future<LatLng> coordinateForPoint({@required Point point}) async {
+    dynamic result = await _channel.invokeMethod("map#coordinateForPoint", <String, dynamic> {
       "x": point.x,
       "y": point.y
     });

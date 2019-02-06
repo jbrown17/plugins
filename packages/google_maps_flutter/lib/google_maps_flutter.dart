@@ -6,6 +6,7 @@ library google_maps_flutter;
 
 import 'dart:async';
 import 'dart:ui';
+import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';

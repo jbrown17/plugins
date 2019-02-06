@@ -312,22 +312,25 @@ final class GoogleMapController
         result.success(data);
         break;
       }
-      case "map#coordinateFromScreenLocation":
+      case "map#coordinateForPoint":
       {
         Point point = new Point((Integer) call.argument("x"), (Integer) call.argument("y"));
-        final HashMap<String, Double> data = coordinateFromScreenLocation(point);
+        final HashMap<String, Double> data = coordinateForPoint(point);
         result.success(data);
+        break;
       }
-      case "map#coordinateToScreenLocation":
+      case "map#pointForCoordinate":
       {
-        LatLng position = new LatLng((Double) call.argument("lat"), (Integer) call.argument("lng"));
+        LatLng position = new LatLng((Double) call.argument("lat"), (Double) call.argument("lng"));
         final HashMap<String, Integer> data = coordinateToScreenLocation(position);
         result.success(data);
+        break;
       }
       case "map#isCoordinateOnScreen":
-        LatLng position = new LatLng((Double) call.argument("lat"), (Integer) call.argument("lng"));
+        LatLng position = new LatLng((Double) call.argument("lat"), (Double) call.argument("lng"));
         final boolean isOnScreen = isCoordinateOnScreen(position);
         result.success(isOnScreen);
+        break;
       default:
         result.notImplemented();
     }
@@ -586,7 +589,7 @@ final class GoogleMapController
     return googleMap.getProjection().getVisibleRegion().latLngBounds.contains(position);
   }
 
-  private HashMap<String, Integer> coordinateToScreenLocation(LatLng position) {
+  private HashMap<String, Integer> pointForCoordinate(LatLng position) {
     Point point = googleMap.getProjection().toScreenLocation(position);
     HashMap<String, Integer> data = new HashMap();
     data.put("x", point.x);
@@ -595,7 +598,7 @@ final class GoogleMapController
     return data;
   }
 
-  private HashMap<String, Double> coordinateFromScreenLocation(Point point) {
+  private HashMap<String, Double> coordinateForPoint(Point point) {
     LatLng position = googleMap.getProjection().fromScreenLocation(point);
     HashMap<String, Double> data = new HashMap();
     data.put("latitude", position.latitude);
