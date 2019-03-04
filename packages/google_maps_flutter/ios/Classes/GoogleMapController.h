@@ -4,13 +4,16 @@
 
 #import <Flutter/Flutter.h>
 #import <GoogleMaps/GoogleMaps.h>
+#import <UIKit/UIKit.h>
 #import "GoogleMapMarkerController.h"
+#import "GoogleMapPolylineController.h"
 
 // Defines map UI options writable from Flutter.
 @protocol FLTGoogleMapOptionsSink
 - (void)setCameraTargetBounds:(GMSCoordinateBounds*)bounds;
 - (void)setCompassEnabled:(BOOL)enabled;
 - (void)setMapType:(GMSMapViewType)type;
+- (void)setMapStyle:(NSString*)style;
 - (void)setMinZoom:(float)minZoom maxZoom:(float)maxZoom;
 - (void)setRotateGesturesEnabled:(BOOL)enabled;
 - (void)setScrollGesturesEnabled:(BOOL)enabled;
@@ -22,16 +25,23 @@
 
 // Defines map overlay controllable from Flutter.
 @interface FLTGoogleMapController
-    : NSObject <GMSMapViewDelegate, FLTGoogleMapOptionsSink, FlutterPlatformView>
+: NSObject <GMSMapViewDelegate, FLTGoogleMapOptionsSink, FlutterPlatformView>
 - (instancetype)initWithFrame:(CGRect)frame
                viewIdentifier:(int64_t)viewId
                     arguments:(id _Nullable)args
                     registrar:(NSObject<FlutterPluginRegistrar>*)registrar;
 - (void)showAtX:(CGFloat)x Y:(CGFloat)y;
 - (void)hide;
-- (void)animateWithCameraUpdate:(GMSCameraUpdate*)cameraUpdate;
+- (void)animateWithCameraUpdate:(GMSCameraUpdate*)cameraUpdate :(float)duration;
 - (void)moveWithCameraUpdate:(GMSCameraUpdate*)cameraUpdate;
 - (GMSCameraPosition*)cameraPosition;
+- (NSString*)addMarkerWithPosition:(CLLocationCoordinate2D)position;
+- (FLTGoogleMapMarkerController*)markerWithId:(NSString*)markerId;
+- (void)removeMarkerWithId:(NSString*)markerId;
+- (NSString*)addPolylineWithPath:(GMSPath*)path;
+- (FLTGoogleMapPolylineController*)polylineWithId:(NSString*)polylineId;
+- (void)removePolylineWithId:(NSString*)polylineId;
+- (NSDictionary*)getVisibleRegion;
 @end
 
 // Allows the engine to create new Google Map instances.

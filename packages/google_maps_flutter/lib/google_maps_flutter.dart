@@ -6,6 +6,7 @@ library google_maps_flutter;
 
 import 'dart:async';
 import 'dart:ui';
+import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -19,5 +20,6 @@ part 'src/controller.dart';
 part 'src/google_map.dart';
 part 'src/marker.dart';
 part 'src/marker_updates.dart';
+part 'src/polyline.dart';
 part 'src/location.dart';
 part 'src/ui.dart';
