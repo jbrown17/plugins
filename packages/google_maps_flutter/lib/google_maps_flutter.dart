@@ -21,3 +21,4 @@ part 'src/marker.dart';
 part 'src/marker_updates.dart';
 part 'src/location.dart';
 part 'src/ui.dart';
+part 'src/polylines.dart';

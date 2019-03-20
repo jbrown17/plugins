@@ -36,6 +36,16 @@ class GoogleMapController {
 
   final MethodChannel _channel;
 
+  /// Callbacks to receive tap events for markers placed on this map.
+  final ArgumentCallbacks<Polyline> onPolylineTapped =
+  ArgumentCallbacks<Polyline>();
+
+  /// The current set of polylines on this map.
+  ///
+  /// The returned set will be a detached snapshot of the polylines collection.
+  Set<Polyline> get polylines => Set<Polyline>.from(_polylines.values);
+  final Map<String, Polyline> _polylines = <String, Polyline>{};
+
   final _GoogleMapState _googleMapState;
 
   Future<dynamic> _handleMethodCall(MethodCall call) async {
@@ -108,12 +118,13 @@ class GoogleMapController {
   ///
   /// The returned [Future] completes after the change has been started on the
   /// platform side.
-  Future<void> animateCamera(CameraUpdate cameraUpdate) async {
+  Future<void> animateCamera(CameraUpdate cameraUpdate, {double duration = 0.0}) async {
     // TODO(amirh): remove this on when the invokeMethod update makes it to stable Flutter.
     // https://github.com/flutter/flutter/issues/26431
     // ignore: strong_mode_implicit_dynamic_method
     await _channel.invokeMethod('camera#animate', <String, dynamic>{
       'cameraUpdate': cameraUpdate._toJson(),
+      'duration': duration
     });
   }
 
@@ -128,5 +139,96 @@ class GoogleMapController {
     await _channel.invokeMethod('camera#move', <String, dynamic>{
       'cameraUpdate': cameraUpdate._toJson(),
     });
+  }
+
+  Future<VisibleRegion> getVisibleRegion() async {
+    dynamic result = await _channel.invokeMethod("map#getVisibleRegion");
+    if (result == null) return null;
+    return VisibleRegion._fromJson(result);
+  }
+
+  Future<bool> isCoordinateOnScreen({@required LatLng position}) async {
+    dynamic result = await _channel.invokeMethod("map#isCoordinateOnScreen", <String, dynamic> {
+      "lat": position.latitude,
+      "lng": position.longitude
+    });
+    return result;
+  }
+
+  /// Set the map style using a json string
+  Future<void> setMapStyle(String style) async {
+    await _channel.invokeMethod("map#setStyle", <String, dynamic> {
+      'style': style
+    });
+  }
+
+  /// Updates the specified [polyline] with the given [changes]. The polyline must
+  /// be a current member of the [polylines] set.
+  ///
+  /// Change listeners are notified once the polyline has been updated on the
+  /// platform side.
+  ///
+  /// The returned [Future] completes once listeners have been notified.
+  Future<void> updatePolyline(
+      Polyline polyline, PolylineOptions changes) async {
+    assert(polyline != null);
+    assert(_polylines[polyline._id] == polyline);
+    assert(changes != null);
+    changes = polyline._options.copyWith(changes);
+    // Code copied from updateMarker
+    // ignore: strong_mode_implicit_dynamic_method
+    await _channel.invokeMethod('polyline#update', <String, dynamic>{
+      'polyline': polyline._id,
+      'options': changes._toJson(),
+    });
+    polyline._options = polyline._options.copyWith(changes);
+  }
+
+  /// Adds a polyline to the map, configured using the specified custom [options].
+  ///
+  /// Change listeners are notified once the polyline has been added on the
+  /// platform side.
+  ///
+  /// The returned [Future] completes with the added polyline once listeners have
+  /// been notified.
+  Future<Polyline> addPolyline(PolylineOptions options) async {
+    final PolylineOptions effectiveOptions =
+    PolylineOptions.defaultOptions.copyWith(options);
+    final String polylineId = await _channel.invokeMethod(
+      'polyline#add',
+      <String, dynamic>{
+        'options': effectiveOptions._toJson(),
+      },
+    );
+    final Polyline polyline = Polyline(polylineId, effectiveOptions);
+    _polylines[polylineId] = polyline;
+    return polyline;
+  }
+
+  /// Removes the specified [polyline] from the map. The polylines must be a current
+  /// member of the [polylines] set.
+  ///
+  /// Change listeners are notified once the polyline has been removed on the
+  /// platform side.
+  ///
+  /// The returned [Future] completes once listeners have been notified.
+  Future<void> removePolyline(Polyline polyline) async {
+    assert(polyline != null);
+    assert(_polylines[polyline._id] == polyline);
+    await _removePolyline(polyline._id);
+  }
+
+  /// Helper method to remove a single polyline from the map. Consumed by
+  /// [removePolyline] and [clearPolylines].
+  ///
+  /// The returned [Future] completes once the marker has been removed from
+  /// [_polylines].
+  Future<void> _removePolyline(String id) async {
+    // Code copied from removeMarker
+    // ignore: strong_mode_implicit_dynamic_method
+    await _channel.invokeMethod('polyline#remove', <String, dynamic>{
+      'polyline': id,
+    });
+    _polylines.remove(id);
   }
 }
