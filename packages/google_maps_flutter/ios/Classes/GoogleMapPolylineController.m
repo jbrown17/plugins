@@ -7,47 +7,47 @@
 static uint64_t _nextPolylineId = 0;
 
 @implementation FLTGoogleMapPolylineController {
-  GMSPolyline* _polyline;
-  GMSMapView* _mapView;
+    GMSPolyline* _polyline;
+    GMSMapView* _mapView;
 }
 - (instancetype)initWithPath:(GMSPath*)path mapView:(GMSMapView*)mapView {
-  self = [super init];
-  if (self) {
-    _polyline = [GMSPolyline polylineWithPath:path];
-    _mapView = mapView;
-    _polylineId = [NSString stringWithFormat:@"%lld", _nextPolylineId++];
-    _polyline.userData = @[ _polylineId, @(NO) ];
-  }
-  return self;
+    self = [super init];
+    if (self) {
+        _polyline = [GMSPolyline polylineWithPath:path];
+        _mapView = mapView;
+        _polylineId = [NSString stringWithFormat:@"%lld", _nextPolylineId++];
+        _polyline.userData = @[ _polylineId, @(NO) ];
+    }
+    return self;
 }
 
 #pragma mark - FLTGoogleMapPolylineOptionsSink methods
 
 - (void)setConsumeTapEvents:(BOOL)consumes {
-  _polyline.userData[1] = @(consumes);
+    _polyline.userData[1] = @(consumes);
 }
 - (void)setPoints:(GMSPath*)points {
-  _polyline.path = points;
+    _polyline.path = points;
 }
 - (void)setClickable:(BOOL)clickable {
-  _polyline.tappable = clickable;
+    _polyline.tappable = clickable;
 }
 - (void)setColor:(UIColor*)color {
-  _polyline.strokeColor = color;
+    _polyline.strokeColor = color;
 }
 - (void)setGeodesic:(BOOL)geodesic {
-  _polyline.geodesic = geodesic;
+    _polyline.geodesic = geodesic;
 }
 - (void)setPattern:(NSArray<GMSStyleSpan*>*)pattern {
-  _polyline.spans = pattern;
+    _polyline.spans = pattern;
 }
 - (void)setWidth:(CGFloat)width {
-  _polyline.strokeWidth = width;
+    _polyline.strokeWidth = width;
 }
 - (void)setVisible:(BOOL)visible {
-  _polyline.map = visible ? _mapView : nil;
+    _polyline.map = visible ? _mapView : nil;
 }
 - (void)setZIndex:(int)zIndex {
-  _polyline.zIndex = zIndex;
+    _polyline.zIndex = zIndex;
 }
 @end

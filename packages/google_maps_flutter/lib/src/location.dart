@@ -103,38 +103,3 @@ class LatLngBounds {
   @override
   int get hashCode => hashValues(southwest, northeast);
 }
-
-class VisibleRegion {
-  VisibleRegion({
-    @required this.farLeft,
-    @required this.farRight,
-    @required this.nearLeft,
-    @required this.nearRight,
-  });
-
-  LatLng farLeft;
-  LatLng farRight;
-  LatLng nearLeft;
-  LatLng nearRight;
-
-  static VisibleRegion _fromJson(dynamic json) {
-    return VisibleRegion(
-      farLeft: LatLng(
-        json["farLeft"]["latitude"],
-        json["farLeft"]["longitude"]
-      ),
-      farRight: LatLng(
-          json["farRight"]["latitude"],
-          json["farRight"]["longitude"]
-      ),
-      nearLeft: LatLng(
-        json["nearLeft"]["latitude"],
-        json["nearLeft"]["longitude"]
-      ),
-      nearRight: LatLng(
-        json["nearRight"]["latitude"],
-        json["nearRight"]["longitude"]
-      )
-    );
-  }
-}
