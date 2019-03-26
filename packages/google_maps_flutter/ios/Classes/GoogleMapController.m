@@ -306,7 +306,7 @@ static GMSPath* toPath(id json) {
 }
 
 - (void)setMyLocationEnabled:(BOOL)enabled {
-  _mapView.myLocationEnabled = false;
+  _mapView.myLocationEnabled = enabled;
   _mapView.settings.myLocationButton = false;
 }
 
