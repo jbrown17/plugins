@@ -310,6 +310,15 @@ static GMSPath* toPath(id json) {
   _mapView.settings.myLocationButton = false;
 }
 
+- (void)setMapStyle:(NSString*)mapStyle {
+  NSError* error;
+  GMSMapStyle* style = [GMSMapStyle styleWithJSONString:mapStyle error:&error];
+  if (!style) {
+    NSLog(@"The map style definition could not be loaded: %@", error);
+  }
+  _mapView.mapStyle = style;
+}
+
 #pragma mark - GMSMapViewDelegate methods
 
 - (void)mapView:(GMSMapView*)mapView willMove:(BOOL)gesture {
@@ -473,6 +482,79 @@ static void InterpretMapOptions(NSDictionary* data, id<FLTGoogleMapOptionsSink> 
   NSNumber* myLocationEnabled = data[@"myLocationEnabled"];
   if (myLocationEnabled) {
     [sink setMyLocationEnabled:ToBool(myLocationEnabled)];
+  }
+  id mapStyle = data[@"mapStyle"];
+  if (mapStyle) {
+    NSString* styleString = mapStyle;
+    [sink setMapStyle:(styleString)];
+  }
+}
+
+static void interpretMarkerOptions(id json, id<FLTGoogleMapMarkerOptionsSink> sink,
+                                   NSObject<FlutterPluginRegistrar>* registrar) {
+  NSDictionary* data = json;
+  id alpha = data[@"alpha"];
+  if (alpha) {
+    [sink setAlpha:ToFloat(alpha)];
+  }
+  id anchor = data[@"anchor"];
+  if (anchor) {
+    [sink setAnchor:ToPoint(anchor)];
+  }
+  id draggable = data[@"draggable"];
+  if (draggable) {
+    [sink setDraggable:ToBool(draggable)];
+  }
+  id icon = data[@"icon"];
+  if (icon) {
+    NSArray* iconData = icon;
+    UIImage* image;
+    if ([iconData[0] isEqualToString:@"defaultMarker"]) {
+      CGFloat hue = (iconData.count == 1) ? 0.0f : ToDouble(iconData[1]);
+      image = [GMSMarker markerImageWithColor:[UIColor colorWithHue:hue / 360.0
+                                                         saturation:1.0
+                                                         brightness:0.7
+                                                              alpha:1.0]];
+    } else if ([iconData[0] isEqualToString:@"fromAsset"]) {
+      if (iconData.count == 2) {
+        image = [UIImage imageNamed:[registrar lookupKeyForAsset:iconData[1]]];
+      } else {
+        image = [UIImage imageNamed:[registrar lookupKeyForAsset:iconData[1]
+                                                     fromPackage:iconData[2]]];
+      }
+    }
+    [sink setIcon:image];
+  }
+  id flat = data[@"flat"];
+  if (flat) {
+    [sink setFlat:ToBool(flat)];
+  }
+  id infoWindowAnchor = data[@"infoWindowAnchor"];
+  if (infoWindowAnchor) {
+    [sink setInfoWindowAnchor:ToPoint(infoWindowAnchor)];
+  }
+  id infoWindowText = data[@"infoWindowText"];
+  if (infoWindowText) {
+    NSArray* infoWindowTextData = infoWindowText;
+    NSString* title = (infoWindowTextData[0] == [NSNull null]) ? nil : infoWindowTextData[0];
+    NSString* snippet = (infoWindowTextData[1] == [NSNull null]) ? nil : infoWindowTextData[1];
+    [sink setInfoWindowTitle:title snippet:snippet];
+  }
+  id position = data[@"position"];
+  if (position) {
+    [sink setPosition:ToLocation(position)];
+  }
+  id rotation = data[@"rotation"];
+  if (rotation) {
+    [sink setRotation:ToDouble(rotation)];
+  }
+  id visible = data[@"visible"];
+  if (visible) {
+    [sink setVisible:ToBool(visible)];
+  }
+  id zIndex = data[@"zIndex"];
+  if (zIndex) {
+    [sink setZIndex:ToInt(zIndex)];
   }
 }
 

@@ -73,9 +73,11 @@ final class GoogleMapController
   private MethodChannel.Result mapReadyResult;
   private final int registrarActivityHashCode;
   private final Context context;
+
   private final MarkersController markersController;
   private List<Object> initialMarkers;
   private final Map<String, PolylineController> polylines;
+  private String mapStyle = "";
 
   GoogleMapController(
       int id,
@@ -397,6 +399,17 @@ final class GoogleMapController
 
   public void setMapStyle(String style) {
     googleMap.setMapStyle(new MapStyleOptions(style));
+  }
+
+  @Override
+  public void setMapStyle(String mapStyle) {
+    if (this.mapStyle.equals(mapStyle)) {
+      return;
+    }
+    this.mapStyle = mapStyle;
+    if (googleMap != null) {
+      googleMap.setMapStyle(new MapStyleOptions(mapStyle));
+    }
   }
 
   @Override

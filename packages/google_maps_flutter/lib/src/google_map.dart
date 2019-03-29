@@ -32,6 +32,7 @@ class GoogleMap extends StatefulWidget {
     this.onCameraMoveStarted,
     this.onCameraMove,
     this.onCameraIdle,
+    this.mapStyle,
   }) : assert(initialCameraPosition != null);
 
   final MapCreatedCallback onMapCreated;
@@ -113,6 +114,30 @@ class GoogleMap extends StatefulWidget {
   /// `Info.plist` file. This will automatically prompt the user for permissions
   /// when the map tries to turn on the My Location layer.
   final bool myLocationEnabled;
+
+  /// The style to be used for the map. The JSON file can be created here at https://mapstyle.withgoogle.com/
+  /// Add the json file to the assets folder and link it in pubspec.yaml.
+  /// Then you can load the file as string like below
+  ///
+  /// String _mapStyle;
+  ///
+  ///  Future<String> loadMapStyle() async {
+  ///    return await rootBundle.loadString('assets/raw/style_json.json');
+  ///  }
+  ///
+  ///  @override
+  ///  void initState() {
+  ///    super.initState();
+  ///    loadMapStyle().then((String style) {
+  ///      setState(() {
+  ///        _mapStyle = style;
+  ///      });
+  ///    });
+  ///  }
+  ///
+  ///
+  ///
+  final String mapStyle;
 
   /// Which gestures should be consumed by the map.
   ///
@@ -239,6 +264,7 @@ class _GoogleMapOptions {
     this.trackCameraPosition,
     this.zoomGesturesEnabled,
     this.myLocationEnabled,
+    this.mapStyle,
   });
 
   static _GoogleMapOptions fromWidget(GoogleMap map) {
@@ -253,6 +279,7 @@ class _GoogleMapOptions {
       trackCameraPosition: map.onCameraMove != null,
       zoomGesturesEnabled: map.zoomGesturesEnabled,
       myLocationEnabled: map.myLocationEnabled,
+      mapStyle: map.mapStyle,
     );
   }
 
@@ -276,6 +303,8 @@ class _GoogleMapOptions {
 
   final bool myLocationEnabled;
 
+  final String mapStyle;
+
   Map<String, dynamic> toMap() {
     final Map<String, dynamic> optionsMap = <String, dynamic>{};
 
@@ -296,6 +325,7 @@ class _GoogleMapOptions {
     addIfNonNull('trackCameraPosition', trackCameraPosition);
     addIfNonNull('myLocationEnabled', myLocationEnabled);
 
+    addIfNonNull('mapStyle', mapStyle);
     return optionsMap;
   }
 

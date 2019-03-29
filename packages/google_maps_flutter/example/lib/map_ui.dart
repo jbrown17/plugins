@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import 'dart:async' show Future;
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
@@ -48,10 +50,20 @@ class MapUiBodyState extends State<MapUiBody> {
   bool _tiltGesturesEnabled = true;
   bool _zoomGesturesEnabled = true;
   bool _myLocationEnabled = true;
+  String _mapStyle;
+
+  Future<String> loadMapStyle() async {
+    return await rootBundle.loadString('assets/raw/style_json.json');
+  }
 
   @override
   void initState() {
     super.initState();
+    loadMapStyle().then((String style) {
+      setState(() {
+        _mapStyle = style;
+      });
+    });
   }
 
   @override
@@ -185,6 +197,7 @@ class MapUiBodyState extends State<MapUiBody> {
       zoomGesturesEnabled: _zoomGesturesEnabled,
       myLocationEnabled: _myLocationEnabled,
       onCameraMove: _updateCameraPosition,
+      mapStyle: _mapStyle,
     );
 
     final List<Widget> columnChildren = <Widget>[
