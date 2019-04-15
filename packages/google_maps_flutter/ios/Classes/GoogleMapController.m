@@ -179,6 +179,9 @@ static double ToDouble(NSNumber* data) { return [FLTGoogleMapJsonConversions toD
   } else if ([call.method isEqualToString:@"map#isScrollGesturesEnabled"]) {
     NSNumber* isScrollGesturesEnabled = @(_mapView.settings.scrollGestures);
     result(isScrollGesturesEnabled);
+  } else if ([call.method isEqualToString:@"style#add"]) {
+      [self addMapStyle:call.arguments[@"style"]];
+      result(nil);
   } else {
     result(FlutterMethodNotImplemented);
   }
@@ -218,6 +221,11 @@ static double ToDouble(NSNumber* data) { return [FLTGoogleMapJsonConversions toD
   } else {
     return nil;
   }
+}
+
+- (void)addMapStyle:(NSString*)mapStyle {
+    GMSMapStyle* style = [GMSMapStyle styleWithJSONString:mapStyle error:nil];
+    _mapView.mapStyle = style;
 }
 
 #pragma mark - FLTGoogleMapOptionsSink methods
