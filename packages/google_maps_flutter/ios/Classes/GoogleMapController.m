@@ -179,9 +179,6 @@ static double ToDouble(NSNumber* data) { return [FLTGoogleMapJsonConversions toD
   } else if ([call.method isEqualToString:@"map#isScrollGesturesEnabled"]) {
     NSNumber* isScrollGesturesEnabled = @(_mapView.settings.scrollGestures);
     result(isScrollGesturesEnabled);
-  } else if ([call.method isEqualToString:@"style#add"]) {
-      [self addMapStyle:call.arguments[@"style"]];
-      result(nil);
   } else {
     result(FlutterMethodNotImplemented);
   }
@@ -223,8 +220,12 @@ static double ToDouble(NSNumber* data) { return [FLTGoogleMapJsonConversions toD
   }
 }
 
-- (void)addMapStyle:(NSString*)mapStyle {
-    GMSMapStyle* style = [GMSMapStyle styleWithJSONString:mapStyle error:nil];
+- (void)setMapStyle:(NSString*)mapStyle {
+    NSError* error;
+    GMSMapStyle* style = [GMSMapStyle styleWithJSONString:mapStyle error:&error];
+    if (!style) {
+        NSLog(@"The map style definition could not be loaded: %@", error);
+    }
     _mapView.mapStyle = style;
 }
 
@@ -457,4 +458,10 @@ static void InterpretMapOptions(NSDictionary* data, id<FLTGoogleMapOptionsSink> 
   if (myLocationEnabled) {
     [sink setMyLocationEnabled:ToBool(myLocationEnabled)];
   }
+    
+    id mapStyle = data[@"mapStyle"];
+    if (mapStyle) {
+        NSString* styleString = mapStyle;
+        [sink setMapStyle:(styleString)];
+    }
 }
