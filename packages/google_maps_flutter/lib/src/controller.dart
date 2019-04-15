@@ -166,4 +166,17 @@ class GoogleMapController {
 
     return LatLngBounds(northeast: northeast, southwest: southwest);
   }
+
+  /// Add custom styling to the map.
+  ///
+  /// The returned [Future] completes after the change has been made on the
+  /// platform side.
+  Future<void> setMapStyle(String style) async {
+    await _channel.invokeMethod(
+      'style#add',
+      <String, dynamic>{
+        'style': style,
+      },
+    );
+  }
 }
