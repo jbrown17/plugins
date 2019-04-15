@@ -264,7 +264,7 @@ static double ToDouble(NSNumber* data) { return [FLTGoogleMapJsonConversions toD
 
 - (void)setMyLocationEnabled:(BOOL)enabled {
   _mapView.myLocationEnabled = enabled;
-  _mapView.settings.myLocationButton = enabled;
+  _mapView.settings.myLocationButton = false;
 }
 
 #pragma mark - GMSMapViewDelegate methods
