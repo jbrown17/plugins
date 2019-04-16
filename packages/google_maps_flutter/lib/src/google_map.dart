@@ -35,8 +35,11 @@ class GoogleMap extends StatefulWidget {
     this.onCameraMove,
     this.onCameraIdle,
     this.onTap,
+    this.mapStyle,
   })  : assert(initialCameraPosition != null),
         super(key: key);
+
+  final String mapStyle;
 
   final MapCreatedCallback onMapCreated;
 
@@ -271,6 +274,7 @@ class _GoogleMapOptions {
     this.trackCameraPosition,
     this.zoomGesturesEnabled,
     this.myLocationEnabled,
+    this.mapStyle,
   });
 
   static _GoogleMapOptions fromWidget(GoogleMap map) {
@@ -285,8 +289,11 @@ class _GoogleMapOptions {
       trackCameraPosition: map.onCameraMove != null,
       zoomGesturesEnabled: map.zoomGesturesEnabled,
       myLocationEnabled: map.myLocationEnabled,
+      mapStyle: map.mapStyle,
     );
   }
+
+  final String mapStyle;
 
   final bool compassEnabled;
 
@@ -327,6 +334,7 @@ class _GoogleMapOptions {
     addIfNonNull('zoomGesturesEnabled', zoomGesturesEnabled);
     addIfNonNull('trackCameraPosition', trackCameraPosition);
     addIfNonNull('myLocationEnabled', myLocationEnabled);
+    addIfNonNull('mapStyle', mapStyle);
 
     return optionsMap;
   }
