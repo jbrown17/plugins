@@ -499,6 +499,7 @@ final class GoogleMapController
       // fail the build if the permission is missing. The following disables the Gradle lint.
       //noinspection ResourceType
       googleMap.setMyLocationEnabled(myLocationEnabled);
+	  googleMap.getUiSettings().setMyLocationButtonEnabled(false);
     } else {
       // TODO(amirh): Make the options update fail.
       // https://github.com/flutter/flutter/issues/24327
