@@ -409,9 +409,9 @@ final class GoogleMapController
 
   @Override
   public void setMapStyle(String mapStyle) {
-    if (this.mapStyle.equals(mapStyle)) {
-      return;
-    }
+    //if (this.mapStyle.equals(mapStyle)) {
+    //  return;
+    //}
     this.mapStyle = mapStyle;
     if (googleMap != null) {
       googleMap.setMapStyle(new MapStyleOptions(mapStyle));
