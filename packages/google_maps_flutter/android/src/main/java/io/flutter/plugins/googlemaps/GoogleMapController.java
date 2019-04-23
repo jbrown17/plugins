@@ -144,8 +144,9 @@ final class GoogleMapController
     googleMap.moveCamera(cameraUpdate);
   }
 
-  private void animateCamera(CameraUpdate cameraUpdate) {
-    googleMap.animateCamera(cameraUpdate);
+  private void animateCamera(CameraUpdate cameraUpdate, Double duration) {
+    googleMap.animateCamera(cameraUpdate, duration.intValue(), null);
+//    googleMap.animateCamera(cameraUpdate);
   }
 
   private CameraPosition getCameraPosition() {
@@ -215,7 +216,9 @@ final class GoogleMapController
         {
           final CameraUpdate cameraUpdate =
               Convert.toCameraUpdate(call.argument("cameraUpdate"), density);
-          animateCamera(cameraUpdate);
+
+          final Double duration = call.argument("duration");
+          animateCamera(cameraUpdate, duration);
           result.success(null);
           break;
         }
@@ -499,7 +502,7 @@ final class GoogleMapController
       // fail the build if the permission is missing. The following disables the Gradle lint.
       //noinspection ResourceType
       googleMap.setMyLocationEnabled(myLocationEnabled);
-	  googleMap.getUiSettings().setMyLocationButtonEnabled(false);
+      googleMap.getUiSettings().setMyLocationButtonEnabled(false);
     } else {
       // TODO(amirh): Make the options update fail.
       // https://github.com/flutter/flutter/issues/24327
